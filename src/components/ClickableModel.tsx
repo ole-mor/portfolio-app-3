@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useGLTF, useAnimations, Html } from '@react-three/drei';
 import { useNavigate } from 'react-router-dom';
 import * as THREE from 'three';
@@ -128,39 +128,42 @@ const ClickableModel: React.FC<ClickableModelProps> = (props) => {
     }
   }, [scene, castShadow, receiveShadow, videoSrc, videoMaterialName]);
 
-  const playAnimations = (stashName: string) => {
-    if (!actions) return;
-
-    // Stop any currently running animations immediately
-    Object.keys(actions).forEach((key) => actions[key]?.stop());
-
-    // Play all animations that match the stash name instantly
-    let anyPlayed = false;
-    Object.keys(actions).forEach((key) => {
-      if (key.endsWith(stashName)) {
-        const action = actions[key];
-        if (action) {
-          action.reset().fadeIn(0.005).play();
-          anyPlayed = true;
-
-          // Ensure morphTargetInfluences are properly updated
-          if (action.getMixer()) {
-            action.getMixer().addEventListener('finished', () => {
-              meshRefs.current.forEach((mesh) => {
-                if (mesh.morphTargetInfluences) {
-                  mesh.morphTargetInfluences = [...mesh.morphTargetInfluences];
-                }
+  const playAnimations = useCallback(
+    (stashName: string) => {
+      if (!actions) return;
+  
+      // Stop any currently running animations immediately
+      Object.keys(actions).forEach((key) => actions[key]?.stop());
+  
+      // Play all animations that match the stash name instantly
+      let anyPlayed = false;
+      Object.keys(actions).forEach((key) => {
+        if (key.endsWith(stashName)) {
+          const action = actions[key];
+          if (action) {
+            action.reset().fadeIn(0.005).play();
+            anyPlayed = true;
+  
+            // Ensure morphTargetInfluences are properly updated
+            if (action.getMixer()) {
+              action.getMixer().addEventListener('finished', () => {
+                meshRefs.current.forEach((mesh) => {
+                  if (mesh.morphTargetInfluences) {
+                    mesh.morphTargetInfluences = [...mesh.morphTargetInfluences];
+                  }
+                });
               });
-            });
+            }
           }
         }
+      });
+  
+      if (!anyPlayed) {
+        console.warn(`No animations found ending with stashName: ${stashName}`);
       }
-    });
-
-    if (!anyPlayed) {
-      console.warn(`No animations found ending with stashName: ${stashName}`);
-    }
-  };
+    },
+    [actions] // Include 'actions' as a dependency
+  );
 
   useEffect(() => {
     // Synchronize animations based on the current hover state
@@ -179,14 +182,15 @@ const ClickableModel: React.FC<ClickableModelProps> = (props) => {
         playAnimations('Idle');
         break;
     }
-  }, [hoverState, actions]);
-
-  // Play the initial Idle animation when the component mounts
+  }, [hoverState, playAnimations]); // Include 'playAnimations'
+  
   useEffect(() => {
+    // Play the initial Idle animation when the component mounts
     if (actions) {
       playAnimations('Idle');
     }
-  }, [actions]);
+  }, [actions, playAnimations]); // Include 'playAnimations'
+  
 
   // Clean up timers on component unmount
   useEffect(() => {
