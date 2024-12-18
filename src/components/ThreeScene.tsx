@@ -25,11 +25,11 @@ const CameraUpdater: React.FC<CameraUpdaterProps> = ({ cameraConfig }) => {
 
       // Update the camera's field of view
       perspectiveCamera.fov = cameraConfig.fov;
-      perspectiveCamera.updateProjectionMatrix(); // Must be called after changing fov
+      perspectiveCamera.updateProjectionMatrix();
     }
   }, [cameraConfig, camera]);
 
-  return null; // This component doesn't render anything
+  return null; 
 };
 
 interface Model {
@@ -43,6 +43,52 @@ interface Model {
 interface ThreeSceneProps {
   models: Model[];
 }
+
+// This helper component runs *inside* the Canvas and can safely use hooks.
+// It modifies any meshes with material.name === "MyMixedMaterial"
+const MixedMaterialUpdater: React.FC = () => {
+  const { scene } = useThree();
+
+  useEffect(() => {
+    scene.traverse((child) => {
+      const mesh = child as THREE.Mesh;
+      if (
+        mesh.isMesh &&
+        mesh.material &&
+        (mesh.material as THREE.Material).name === 'MyMixedMaterial'
+      ) {
+        // Create the custom MeshPhysicalMaterial for the see-through object
+        const glassMaterial = new THREE.MeshPhysicalMaterial({
+          transmission: 1.0,
+          transparent: true,
+          opacity: 0.5,
+          roughness: 0.1,
+          metalness: 0.0,
+          ior: 1.45,
+          thickness: 0.1,
+          reflectivity: 0.5,
+          clearcoat: 1.0,
+          clearcoatRoughness: 0.05,
+        });
+        mesh.material = glassMaterial;
+
+        // Adjust shadows for a see-through object
+        // Make it not cast a fully opaque shadow
+        mesh.castShadow = false;
+
+        // Ensure the material doesn't write depth as solid
+        const mat = mesh.material as THREE.Material & {
+          depthWrite?: boolean;
+          transparent?: boolean;
+        };
+        mat.transparent = true;
+        mat.depthWrite = false;
+      }
+    });
+  }, [scene]);
+
+  return null;
+};
 
 const ThreeScene: React.FC<ThreeSceneProps> = ({ models }) => {
   const [cameraConfig, setCameraConfig] = useState<CameraConfig>({
@@ -92,7 +138,6 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({ models }) => {
       }}
       style={{ width: '100%', height: '100vh' }}
     >
-      {/* Camera Updater Component */}
       <CameraUpdater cameraConfig={cameraConfig} />
 
       {/* Ambient Light */}
@@ -137,6 +182,9 @@ const ThreeScene: React.FC<ThreeSceneProps> = ({ models }) => {
           receiveShadow
         />
       ))}
+
+      {/* Apply the changes to MyMixedMaterial objects */}
+      <MixedMaterialUpdater />
     </Canvas>
   );
 };

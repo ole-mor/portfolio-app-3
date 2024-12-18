@@ -82,6 +82,16 @@ const dashboardsData: DashboardData[] = [
     author: 'Ole MO',
     date: '25 november, 2024',
   },
+  {
+    id: 'postid:6',
+    name: 'Into React 19!',
+    docUrl:
+      'https://docs.google.com/document/d/1NMicl4cW_6jCe8DyoH9jDZ1mWRD-TkoqE9945bCYKrg/export?format=txt',
+    description: ``,
+    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRu-1OLE6D2tMpFTiBD6v1Z-UqbCu2SBPup5w&s',
+    author: 'Ole MO',
+    date: '25 november, 2024',
+  },
 ];
 
 
@@ -284,15 +294,15 @@ const Home: React.FC = () => {
     {
       src: '/models/travel-model3-conversion-test-anim5.glb',
       scale: [0.6, 0.6, 0.6],
-      position: [-15, 0, 10],
+      position: [-12, 0, 2],
       link: '/blogposts',
     },
-/*     {
-      src: '/models/travel-model3-conversion-test-anim5.glb',
+    {
+      src: '/models/glass-model5-out2.glb',
       scale: [0.6, 0.6, 0.6],
       position: [0, 0, -10],
-      link: '/blogposts',
-    }, */
+      link: 'https://clinkclank.netlify.app/',
+    }, 
 /*     {
       src: '/models/model1-stats-animated-colored.glb',
       scale: [0.8, 0.8, 0.8],

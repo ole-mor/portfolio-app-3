@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import { useGLTF, useAnimations, Html } from '@react-three/drei';
 import { useNavigate } from 'react-router-dom';
 import * as THREE from 'three';
@@ -18,6 +18,13 @@ interface ClickableModelProps {
   videoMaterialName?: string;
 }
 
+type HoverState = 'idle' | 'hoverEntry' | 'hoverIdle' | 'hoverExit';
+
+const HOVER_DELAY_MS = 200;
+const HOVER_ENTRY_DURATION_MS = 1500;
+const HOVER_EXIT_DURATION_MS = 1600;
+const HOVER_EXIT_GRACE_MS = 1000; 
+
 const ClickableModel: React.FC<ClickableModelProps> = (props) => {
   const {
     src,
@@ -33,12 +40,16 @@ const ClickableModel: React.FC<ClickableModelProps> = (props) => {
 
   const group = useRef<THREE.Group>(null!);
   const navigate = useNavigate();
-  const [hoverState, setHoverState] = useState<'idle' | 'hover-entry' | 'hover-idle' | 'hover-exit'>('idle');
+  const [hoverState, setHoverState] = useState<HoverState>('idle');
+  const hoveredMeshes = useRef<Set<THREE.Object3D>>(new Set());
   const hoverTimer = useRef<number | null>(null);
   const hoverDelayTimer = useRef<number | null>(null);
+  const exitGraceTimer = useRef<number | null>(null);
   const meshRefs = useRef<Set<THREE.Mesh>>(new Set());
 
-  // Load the GLB model and its animations
+  const memoedScale = useMemo(() => scale, [scale]);
+  const memoedPosition = useMemo(() => position, [position]);
+
   const gltf = useGLTF(src) as GLTF & {
     scene: THREE.Group;
     animations: THREE.AnimationClip[];
@@ -47,76 +58,92 @@ const ClickableModel: React.FC<ClickableModelProps> = (props) => {
   const { scene, animations } = gltf;
   const { actions } = useAnimations(animations, group);
 
-  // Preload the model for better performance
   useGLTF.preload(src);
 
   useEffect(() => {
-    // Create video element if videoSrc is provided
+    let video: HTMLVideoElement | null = null;
     let videoTexture: THREE.VideoTexture | undefined;
+
     if (videoSrc) {
-      const video = document.createElement('video');
+      video = document.createElement('video');
       video.src = videoSrc;
       video.crossOrigin = 'anonymous';
       video.loop = true;
-      video.muted = true; // Auto-play requires the video to be muted
+      video.muted = true; 
       video.playsInline = true;
       video.autoplay = true;
-      video.play();
 
-      // Create VideoTexture
+      video.play().catch(() => {
+        console.warn('Video autoplay might be blocked by the browser.');
+      });
+
       videoTexture = new THREE.VideoTexture(video);
       videoTexture.minFilter = THREE.LinearFilter;
       videoTexture.magFilter = THREE.LinearFilter;
-      videoTexture.format = THREE.RGBFormat;
-      videoTexture.flipY = false; // Correct the upside-down issue
+      videoTexture.flipY = false;
     }
 
-    // Traverse the model to set shadows, apply video texture, and custom raycast
     scene.traverse((child: THREE.Object3D) => {
       if ((child as THREE.Mesh).isMesh) {
         const mesh = child as THREE.Mesh;
         mesh.castShadow = castShadow;
         mesh.receiveShadow = receiveShadow;
-        meshRefs.current.add(mesh); // Store mesh reference
-
+        meshRefs.current.add(mesh);
+        console.log(mesh.material);
         if (mesh.material) {
           const material = mesh.material as THREE.Material & {
             name?: string;
             map?: THREE.Texture | null;
             shadowSide?: THREE.Side;
           };
+          // Check material type via 'instanceof'
+        
           material.shadowSide = THREE.DoubleSide;
           material.needsUpdate = true;
-
-          // Apply video texture if this is the target material
+        
+          // Existing logic for video material, etc.
           if (videoTexture && material.name === videoMaterialName) {
             material.map = videoTexture;
             material.needsUpdate = true;
-
-            // Apply custom raycast function only to meshes with video texture
+        
             mesh.frustumCulled = false;
             mesh.raycast = function (raycaster: THREE.Raycaster, intersects: THREE.Intersection[]) {
-              const threshold = 0.1; // Adjust this value based on your needs
+              const threshold = 0.1; 
               let boundingSphere = this.geometry.boundingSphere;
-
+        
               if (!boundingSphere) {
                 this.geometry.computeBoundingSphere();
                 boundingSphere = this.geometry.boundingSphere!;
               }
-
-              // Use a slightly larger bounding sphere for intersection testing
+        
               const scaledRadius = boundingSphere.radius * (1 + threshold);
               const tempSphere = new THREE.Sphere(boundingSphere.center, scaledRadius);
-
+        
               if (raycaster.ray.intersectsSphere(tempSphere)) {
                 THREE.Mesh.prototype.raycast.call(this, raycaster, intersects);
               }
             };
+          } else if (material.name === 'MyMixedMaterial') {
+            // Replace only this material with a glass-like material
+            const glassMaterial = new THREE.MeshPhysicalMaterial({
+              transmission: 1.0,
+              transparent: true,
+              opacity: 0.8,
+              roughness: 0.1,
+              metalness: 0.0,
+              ior: 1.45,
+              thickness: 0.1,
+              reflectivity: 0.5,
+              clearcoat: 1.0,
+              clearcoatRoughness: 0.05,
+            });
+            mesh.material = glassMaterial;
+            mesh.frustumCulled = false;
+          } else {
+            // Default handling for others
+            mesh.frustumCulled = false;
           }
         }
-
-        // For all meshes, ensure they are not frustum culled
-        mesh.frustumCulled = false;
       }
     });
 
@@ -126,16 +153,21 @@ const ClickableModel: React.FC<ClickableModelProps> = (props) => {
         node.receiveShadow = receiveShadow;
       });
     }
+
+    return () => {
+      if (video) {
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+      }
+    };
   }, [scene, castShadow, receiveShadow, videoSrc, videoMaterialName]);
 
   const playAnimations = useCallback(
     (stashName: string) => {
       if (!actions) return;
-  
-      // Stop any currently running animations immediately
       Object.keys(actions).forEach((key) => actions[key]?.stop());
-  
-      // Play all animations that match the stash name instantly
+
       let anyPlayed = false;
       Object.keys(actions).forEach((key) => {
         if (key.endsWith(stashName)) {
@@ -143,8 +175,7 @@ const ClickableModel: React.FC<ClickableModelProps> = (props) => {
           if (action) {
             action.reset().fadeIn(0.005).play();
             anyPlayed = true;
-  
-            // Ensure morphTargetInfluences are properly updated
+
             if (action.getMixer()) {
               action.getMixer().addEventListener('finished', () => {
                 meshRefs.current.forEach((mesh) => {
@@ -157,24 +188,23 @@ const ClickableModel: React.FC<ClickableModelProps> = (props) => {
           }
         }
       });
-  
+
       if (!anyPlayed) {
         console.warn(`No animations found ending with stashName: ${stashName}`);
       }
     },
-    [actions] // Include 'actions' as a dependency
+    [actions]
   );
 
   useEffect(() => {
-    // Synchronize animations based on the current hover state
     switch (hoverState) {
-      case 'hover-entry':
+      case 'hoverEntry':
         playAnimations('Hover-entry');
         break;
-      case 'hover-idle':
+      case 'hoverIdle':
         playAnimations('Hover-idle');
         break;
-      case 'hover-exit':
+      case 'hoverExit':
         playAnimations('Hover-exit');
         break;
       case 'idle':
@@ -182,113 +212,119 @@ const ClickableModel: React.FC<ClickableModelProps> = (props) => {
         playAnimations('Idle');
         break;
     }
-  }, [hoverState, playAnimations]); // Include 'playAnimations'
-  
+  }, [hoverState, playAnimations]);
+
   useEffect(() => {
-    // Play the initial Idle animation when the component mounts
+    // On mount, start idle animation
     if (actions) {
       playAnimations('Idle');
     }
-  }, [actions, playAnimations]); // Include 'playAnimations'
-  
+  }, [actions, playAnimations]);
 
-  // Clean up timers on component unmount
   useEffect(() => {
     return () => {
-      if (hoverTimer.current) {
-        clearTimeout(hoverTimer.current);
-      }
-      if (hoverDelayTimer.current) {
-        clearTimeout(hoverDelayTimer.current);
-      }
+      if (hoverTimer.current) clearTimeout(hoverTimer.current);
+      if (hoverDelayTimer.current) clearTimeout(hoverDelayTimer.current);
+      if (exitGraceTimer.current) clearTimeout(exitGraceTimer.current);
     };
   }, []);
 
+  const startHoverEntrySequence = () => {
+    if (hoverState === 'idle') {
+      if (hoverDelayTimer.current) clearTimeout(hoverDelayTimer.current);
+      hoverDelayTimer.current = window.setTimeout(() => {
+        setHoverState('hoverEntry');
+        if (hoverTimer.current) clearTimeout(hoverTimer.current);
+        hoverTimer.current = window.setTimeout(() => {
+          setHoverState('hoverIdle');
+        }, HOVER_ENTRY_DURATION_MS);
+      }, HOVER_DELAY_MS);
+    }
+  };
+
+  const startHoverExitSequence = () => {
+    if (hoverState === 'hoverEntry' || hoverState === 'hoverIdle') {
+      setHoverState('hoverExit');
+      window.setTimeout(() => {
+        setHoverState('idle');
+      }, HOVER_EXIT_DURATION_MS);
+    }
+  };
+
   const handlePointerOver = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
+    const object = event.object;
+    const wasEmpty = hoveredMeshes.current.size === 0;
 
-    if (hoverState !== 'idle') return; // Only start the delay if in 'idle' state
+    hoveredMeshes.current.add(object);
+    document.body.style.cursor = 'pointer';
 
-    document.body.style.cursor = 'pointer'; // Change cursor immediately
+    if (exitGraceTimer.current) {
+      clearTimeout(exitGraceTimer.current);
+      exitGraceTimer.current = null;
+    }
 
-    // Start the 0.2-second delay
-    if (hoverDelayTimer.current) clearTimeout(hoverDelayTimer.current);
-
-    hoverDelayTimer.current = window.setTimeout(() => {
-      setHoverState('hover-entry'); // Start hover-entry animation
-
-      // Start a timer to transition to hover-idle
-      if (hoverTimer.current) clearTimeout(hoverTimer.current);
-
-      // Use fixed duration of 1.5 seconds
-      hoverTimer.current = window.setTimeout(() => {
-        setHoverState('hover-idle');
-      }, 1500); // Fixed to 1.5 seconds
-    }, 200); // Delay of 0.2 seconds
+    if (wasEmpty) {
+      startHoverEntrySequence();
+    }
   };
 
   const handlePointerOut = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
+    const object = event.object;
+    hoveredMeshes.current.delete(object);
 
-    document.body.style.cursor = 'auto'; // Reset cursor immediately
+    if (hoveredMeshes.current.size === 0) {
+      document.body.style.cursor = 'auto';
 
-    // Clear hover delay timer if it exists
-    if (hoverDelayTimer.current) {
-      clearTimeout(hoverDelayTimer.current);
-      hoverDelayTimer.current = null;
+      if (hoverDelayTimer.current) {
+        clearTimeout(hoverDelayTimer.current);
+        hoverDelayTimer.current = null;
+      }
+
+      if (exitGraceTimer.current) clearTimeout(exitGraceTimer.current);
+      exitGraceTimer.current = window.setTimeout(() => {
+        if (hoveredMeshes.current.size === 0) {
+          startHoverExitSequence();
+        }
+      }, HOVER_EXIT_GRACE_MS);
     }
-
-    if (hoverState === 'idle') {
-      // Do nothing more, since we haven't changed the hoverState yet
-      return;
-    }
-
-    if (hoverState !== 'hover-idle' && hoverState !== 'hover-entry') return; // Prevent re-triggering
-
-    setHoverState('hover-exit'); // Start hover-exit animation
-
-    // Clear hover timer if it exists
-    if (hoverTimer.current) {
-      clearTimeout(hoverTimer.current);
-      hoverTimer.current = null;
-    }
-
-    // Use fixed duration of 1.5 seconds
-    window.setTimeout(() => {
-      setHoverState('idle');
-    }, 1600); // Fixed to 1.6 seconds
   };
 
   const handlePointerDown = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
-
     if (event.pointerType === 'touch') {
-      // For touch devices, start hover effect
       handlePointerOver(event);
     }
   };
 
   const handlePointerUp = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
-
+  
+    // Check if this link is external
+    const isExternal = link.startsWith('http');
+  
     if (event.pointerType === 'touch') {
-      // For touch devices, treat touch release as click
-      navigate(link);
-
-      // End hover effect
+      if (isExternal) {
+        window.location.href = link;
+      } else {
+        navigate(link);
+      }
       handlePointerOut(event);
     } else if (event.pointerType === 'mouse' || event.pointerType === 'pen') {
-      if (event.button === 0) {
-        // Allow click regardless of hover state
-        navigate(link);
+      if (event.button === 0 && hoveredMeshes.current.size > 0) {
+        if (isExternal) {
+          window.location.href = link;
+        } else {
+          navigate(link);
+        }
       }
     }
   };
-
-  console.log(Object.keys(actions ?? {}));
+  
 
   return (
-    <group ref={group} scale={scale} position={position} dispose={null}>
+    <group ref={group} scale={memoedScale} position={memoedPosition} dispose={null}>
       <primitive
         object={scene}
         onPointerOver={handlePointerOver}
