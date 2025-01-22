@@ -24,35 +24,30 @@ interface DashboardData {
 
 const dashboardsData: DashboardData[] = [
   {
-    id: 'postid:1',
-    name: 'A practical approach to talking about sustainable development',
+    id: 'postid:6',
+    name: 'Combining the power of react-chart-2 and Tableau Public.',
     docUrl:
-      'https://docs.google.com/document/d/1I1KHYr1Exz3Ll-01l2mPwREJ_4FTcENPGoqpsBtpRx8/export?format=txt',
-    description: `It seems like we're about to head into a very important time in history. With gaps between political opinions widening, 
-    and information being spread rapidly all over the world. Technologists have to adapt our approach to align with the people we're trying to help.`,
-    image: 'https://i.imgur.com/cTtRhoP.png',
+      'https://docs.google.com/document/d/17Z9tneRHIr_he0JiWxe_oColPTm4v1gYZiNvovNZUzU/export?format=txt',
+    description: `On my road to seamless integration, I've stumbled upon a way to integrate visual analytics
+    my projects. Here's how I did it. 
+    `,
+    image: 'https://raw.githubusercontent.com/reactchartjs/react-chartjs-2/HEAD/website/static/img/logo.svg',
     author: 'Ole MO',
-    date: 'November 21, 2024',
+    date: '22 januar, 2024',
   },
   {
-    id: 'postid:2',
-    name: 'Niche-centered applications of programming',
+    id: 'postid:5',
+    name: 'Nextjs workflow. Making quick and reliable websites.',
     docUrl:
-      'https://docs.google.com/document/d/your_document_id_2/export?format=txt',
-    description: 'A detailed overview of dashboard-related analytics.',
-    image: 'https://miro.medium.com/v2/resize:fit:800/0*FxXjNMKLbpkw8Zs-.png',
+      'https://docs.google.com/document/d/1kqKfAB0YLg1ZhiShps7p8g2fzIrg-G6f_wkbFgJ4Ad0/export?format=txt',
+    description: `So in the recent month, I have dived into the react ecosystem, to try to understand the hype surrounding 
+    the framework, and though I haven't been working on it for long, I am starting to see the benefits. After fidgeting a bit, 
+    I ended up trying Nextjs and really enjoying it. My current toolset uses nextjs, typescript, and tailwind, though I've started
+    to look into other libraries for handling auth, and microservices to really up the level of my projects. 
+    `,
+    image: 'https://i0.wp.com/softwareengineeringdaily.com/wp-content/uploads/2020/02/NextJs.png?resize=730%2C389&ssl=1',
     author: 'Ole MO',
-    date: 'November 21, 2024',
-  },
-  {
-    id: 'postid:3',
-    name: 'Threejs: Materializing animated 3d objects.',
-    docUrl:
-      'https://docs.google.com/document/d/1oPDkVSWMnNr393U8yAxK5Wii0YJU91G41faDChVwqJM/export?format=txt',
-    description: 'How to use procreate and blender to make cool 3D objects for Threejs.',
-    image: 'https://p.turbosquid.com/ts-thumb/3V/zKn549/CD/turntable/png/1629824850/1920x1080/turn_fit_q99/d05f5e8b490e15f499f8e284652c94ae4031dcf8/turntable-1.jpg',
-    author: 'Ole MO',
-    date: 'November 22, 2024',
+    date: '25 november, 2024',
   },
   {
     id: 'postid:4',
@@ -69,28 +64,35 @@ const dashboardsData: DashboardData[] = [
     date: '25 november, 2024',
   },
   {
-    id: 'postid:5',
-    name: 'Nextjs workflow. Making quick and reliable websites.',
+    id: 'postid:3',
+    name: 'Threejs: Materializing animated 3d objects.',
     docUrl:
-      'https://docs.google.com/document/d/1FKihyqy0M6BFgx6zZM5sDzbInnH2C4RJMHqR5p44k_w/export?format=txt',
-    description: `Usually out of the box software is kind of hard to work with, and the methods to build with these tools are
-    not necessarily easy to come by, or is written in an unaccessable way. In this post I will go through how to work with the
-    open-source software tesseract-ocr, and guide you how to test it on your system, as well as how to integrate it with your
-    builds. After you've read this article, you'll be able to use the semantic query system of tesseract, and automate certain
-    processes. Simultainousl, you might be able to use these skills with other software.`,
-    image: 'https://www.klippa.com/wp-content/uploads/2022/10/tesseract-software-visual-1024x480.png',
+      'https://docs.google.com/document/d/1oPDkVSWMnNr393U8yAxK5Wii0YJU91G41faDChVwqJM/export?format=txt',
+    description: 'How to use procreate and blender to make cool 3D objects for Threejs.',
+    image: 'https://p.turbosquid.com/ts-thumb/3V/zKn549/CD/turntable/png/1629824850/1920x1080/turn_fit_q99/d05f5e8b490e15f499f8e284652c94ae4031dcf8/turntable-1.jpg',
     author: 'Ole MO',
-    date: '25 november, 2024',
+    date: 'November 22, 2024',
   },
   {
-    id: 'postid:6',
-    name: 'Into React 19!',
+    id: 'postid:2',
+    name: 'Niche-centered applications of programming',
     docUrl:
-      'https://docs.google.com/document/d/1NMicl4cW_6jCe8DyoH9jDZ1mWRD-TkoqE9945bCYKrg/export?format=txt',
-    description: ``,
-    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRu-1OLE6D2tMpFTiBD6v1Z-UqbCu2SBPup5w&s',
+      'https://docs.google.com/document/d/your_document_id_2/export?format=txt',
+    description: 'A detailed overview of dashboard-related analytics.',
+    image: 'https://miro.medium.com/v2/resize:fit:800/0*FxXjNMKLbpkw8Zs-.png',
     author: 'Ole MO',
-    date: '25 november, 2024',
+    date: 'November 21, 2024',
+  },
+  {
+    id: 'postid:1',
+    name: 'A practical approach to talking about sustainable development',
+    docUrl:
+      'https://docs.google.com/document/d/1I1KHYr1Exz3Ll-01l2mPwREJ_4FTcENPGoqpsBtpRx8/export?format=txt',
+    description: `It seems like we're about to head into a very important time in history. With gaps between political opinions widening, 
+    and information being spread rapidly all over the world. Technologists have to adapt our approach to align with the people we're trying to help.`,
+    image: 'https://i.imgur.com/cTtRhoP.png',
+    author: 'Ole MO',
+    date: 'November 21, 2024',
   },
 ];
 

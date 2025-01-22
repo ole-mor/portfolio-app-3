@@ -107,7 +107,6 @@ a:active {
 }
 
 .dashboards-content ul li:hover {
-  transform: scale(1.2);
   background-color: #ddd; /* Optional: Change background color on hover */
 }
 
